@@ -41,16 +41,18 @@ class CE_Admin {
     if ( isset( $_GET['updated'] ) )  echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
     if ( isset( $_GET['reset'] ) )    echo '<div class="notice notice-success is-dismissible"><p>Restored default.</p></div>';
     if ( isset( $_GET['tested'] ) )   echo '<div class="notice notice-success is-dismissible"><p>Test email sent.</p></div>';
-    echo '<table class="widefat striped"><thead><tr><th>Source</th><th>Email</th><th>Status</th><th>Last edited</th><th></th></tr></thead><tbody>';
+    echo '<table class="widefat striped"><thead><tr><th>Source</th><th>Email</th><th>Status</th><th>Format</th><th>Last edited</th><th></th></tr></thead><tbody>';
     foreach ( $emails as $id => $e ) {
       $override = CE_Store::get( $id );
       $status   = $override ? 'Customized' : 'Default';
       $modified = $override['modified'] ?? '-';
-      $default_url = add_query_arg( [ 'page' => self::SLUG, 'email' => $id ], admin_url( 'admin.php' ) );
-      $url = apply_filters( 'ce_edit_link', $default_url, $e );
-      printf( '<tr><td>%s</td><td><strong>%s</strong><br><span class="description">%s</span></td><td>%s</td><td>%s</td><td><a href="%s" class="button">Edit</a></td></tr>',
+      $fmt      = $override['format'] ?? 'default';
+      $fmt_label = $fmt === 'html' ? 'HTML' : ( $fmt === 'text' ? 'Text' : 'Global' );
+      $url = add_query_arg( [ 'page' => self::SLUG, 'email' => $id ], admin_url( 'admin.php' ) );
+      $url = apply_filters( 'ce_edit_link', $url, $e );
+      printf( '<tr><td>%s</td><td><strong>%s</strong><br><span class="description">%s</span></td><td>%s</td><td>%s</td><td>%s</td><td><a href="%s" class="button">Edit</a></td></tr>',
         esc_html( strtoupper( $e['source'] ) ), esc_html( $e['label'] ), esc_html( $e['description'] ),
-        esc_html( $status ), esc_html( $modified ), esc_url( $url ) );
+        esc_html( $status ), esc_html( $fmt_label ), esc_html( $modified ), esc_url( $url ) );
     }
     echo '</tbody></table></div>';
   }
@@ -59,22 +61,19 @@ class CE_Admin {
     $emails = CE_Registry::all();
     echo '<div class="wrap"><h1>Token Reference</h1>';
     self::render_nav( 'tokens' );
-    echo '<p>Below is a complete list of every available token for each email, grouped by source. Use these in Subject and Body fields.</p>';
-
-    // Group by source.
+    echo '<p>Below is a complete list of every available token for each email, grouped by source.</p>';
     $grouped = [];
     foreach ( $emails as $id => $e ) {
       $src = strtoupper( $e['source'] ?? 'OTHER' );
       $grouped[ $src ][] = $e;
     }
-
     foreach ( $grouped as $source => $items ) {
       echo '<h2>' . esc_html( $source ) . '</h2>';
       echo '<table class="widefat striped"><thead><tr><th style="width:25%">Email</th><th style="width:25%">Token</th><th>Description</th></tr></thead><tbody>';
       foreach ( $items as $e ) {
         $tokens = $e['available_tokens'] ?? [];
         if ( empty( $tokens ) ) {
-          echo '<tr><td>' . esc_html( $e['label'] ) . '</td><td colspan="2"><em>No tokens registered</em></td></tr>';
+          echo '<tr><td>' . esc_html( $e['label'] ) . '</td><td colspan="2"><em>No tokens</em></td></tr>';
           continue;
         }
         $first = true;
@@ -84,20 +83,16 @@ class CE_Admin {
             echo '<td rowspan="' . count( $tokens ) . '" style="vertical-align:top;font-weight:600">' . esc_html( $e['label'] ) . '</td>';
             $first = false;
           }
-          echo '<td><code>' . esc_html( $tok ) . '</code></td>';
-          echo '<td>' . esc_html( $desc ) . '</td>';
-          echo '</tr>';
+          echo '<td><code>' . esc_html( $tok ) . '</code></td><td>' . esc_html( $desc ) . '</td></tr>';
         }
       }
       echo '</tbody></table>';
     }
-
-    // Global summary - unique tokens across all emails.
     echo '<h2>All Unique Tokens (quick copy)</h2>';
     $all_tokens = [];
     foreach ( $emails as $e ) {
       foreach ( ( $e['available_tokens'] ?? [] ) as $tok => $desc ) {
-        if ( ! isset( $all_tokens[ $tok ] ) ) { $all_tokens[ $tok ] = $desc; }
+        if ( ! isset( $all_tokens[ $tok ] ) ) $all_tokens[ $tok ] = $desc;
       }
     }
     ksort( $all_tokens );
@@ -113,6 +108,8 @@ class CE_Admin {
     if ( ! $def ) { echo '<div class="wrap"><p>Unknown email.</p></div>'; return; }
     $cur = CE_Store::resolve( $id );
     $has_override = (bool) CE_Store::get( $id );
+    $current_format = CE_Store::get_format( $id );
+    $global_label = get_option( CE_Wrapper::OPT_HTML ) ? 'HTML' : 'Text';
     ?>
     <div class="wrap">
       <h1>Edit: <?php echo esc_html( $def['label'] ); ?></h1>
@@ -135,6 +132,15 @@ class CE_Admin {
                   <li><code><?php echo esc_html( $tok ); ?></code> &ndash; <?php echo esc_html( $desc ); ?></li>
                 <?php endforeach; ?>
               </ul>
+            </td></tr>
+          <tr><th><label>Email format</label></th>
+            <td>
+              <select name="format">
+                <option value="default" <?php selected( $current_format, 'default' ); ?>>Use global default (currently: <?php echo esc_html( $global_label ); ?>)</option>
+                <option value="html" <?php selected( $current_format, 'html' ); ?>>HTML (rich text)</option>
+                <option value="text" <?php selected( $current_format, 'text' ); ?>>Plain text</option>
+              </select>
+              <p class="description">Override the global format setting for this email only. Global default is set in Settings.</p>
             </td></tr>
         </table>
         <?php submit_button( 'Save' ); ?>
@@ -160,15 +166,19 @@ class CE_Admin {
     <?php
   }
 
-  /* ---- handlers (unchanged) ---- */
+  /* ---- handlers ---- */
 
   public static function handle_save() {
     $id = sanitize_key( $_POST['email_id'] ?? '' );
     check_admin_referer( 'ce_save_' . $id );
-            CE_Store::save( $id, sanitize_text_field( $_POST['subject'] ?? '' ), wp_kses_post( $_POST['body'] ?? '' ) );
-        wp_safe_redirect( add_query_arg( [ 'page' => self::SLUG, 'email' => $id, 'updated' => 1 ], admin_url( 'admin.php' ) ) );
-        exit;
-      }
+    $subject = sanitize_text_field( $_POST['subject'] ?? '' );
+    $body    = wp_kses_post( $_POST['body'] ?? '' );
+    $format  = sanitize_key( $_POST['format'] ?? 'default' );
+    CE_Store::save( $id, $subject, $body, true, $format );
+    wp_safe_redirect( add_query_arg( [ 'page' => self::SLUG, 'email' => $id, 'updated' => 1 ], admin_url( 'admin.php' ) ) );
+    exit;
+  }
+
   public static function handle_reset() {
     $id = sanitize_key( $_POST['email_id'] ?? '' );
     check_admin_referer( 'ce_reset_' . $id );
