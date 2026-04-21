@@ -49,9 +49,29 @@ class CE_Settings {
                         <p class="description">Choose a logo image from the Media Library. It will appear at the top of HTML emails.</p>
                     </td></tr>
                 <tr><th>Global header</th>
-                    <td><textarea name="header" rows="6" class="large-text code"><?php echo esc_textarea( get_option( CE_Wrapper::OPT_HEADER ) ); ?></textarea></td></tr>
+                    <td>
+                        <textarea name="header" rows="6" class="large-text code"><?php echo esc_textarea( get_option( CE_Wrapper::OPT_HEADER ) ); ?></textarea>
+                        <p class="description">
+                            HTML that appears <strong>after the logo</strong> and <strong>before</strong> the email body.<br>
+                            Typically used to open a centered container, e.g.:<br>
+                            <code>&lt;div style="max-width:600px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#333;padding:20px;"&gt;</code>
+                        </p>
+                    </td></tr>
                 <tr><th>Global footer</th>
-                    <td><textarea name="footer" rows="6" class="large-text code"><?php echo esc_textarea( get_option( CE_Wrapper::OPT_FOOTER ) ); ?></textarea></td></tr>
+                    <td>
+                        <textarea name="footer" rows="6" class="large-text code"><?php echo esc_textarea( get_option( CE_Wrapper::OPT_FOOTER ) ); ?></textarea>
+                        <p class="description">
+                            HTML that appears <strong>after</strong> the email body. Close any container opened in the header.<br>
+                            Example: a separator, site name, link, then close the div:<br>
+                            <code>&lt;hr style="border:none;border-top:1px solid #ddd;margin:30px 0 15px;"&gt;</code><br>
+                            <code>&lt;p style="font-size:12px;color:#999;text-align:center;"&gt;OpenTuition &amp;ndash; Free ACCA &amp;amp; CIMA online courses&lt;br&gt;&lt;a href="https://opentuition.com"&gt;opentuition.com&lt;/a&gt;&lt;/p&gt;</code><br>
+                            <code>&lt;/div&gt;</code>
+                        </p>
+                        <p class="description" style="margin-top:10px;">
+                            <strong>Visual order of HTML emails:</strong> Logo &rarr; Header &rarr; Email body &rarr; Footer.<br>
+                            Emails set to "text" format skip all of this.
+                        </p>
+                    </td></tr>
             </table>
             <?php submit_button(); ?>
         </form></div>
