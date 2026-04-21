@@ -3,13 +3,29 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class CE_Settings {
 
-    const OPT_LOGO = 'ce_email_logo_url';
+    const OPT_LOGO       = 'ce_email_logo_url';
+    const OPT_FROM_NAME  = 'ce_from_name';
+    const OPT_FROM_EMAIL = 'ce_from_email';
 
     public static function boot() {
         add_action( 'admin_menu', [ __CLASS__, 'menu' ], 20 );
         add_action( 'admin_post_ce_save_settings', [ __CLASS__, 'save' ] );
         add_action( 'admin_post_ce_promote', [ __CLASS__, 'promote' ] );
         add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_media' ] );
+
+        // Override From name/email if configured.
+        $from_name  = get_option( self::OPT_FROM_NAME, '' );
+        $from_email = get_option( self::OPT_FROM_EMAIL, '' );
+        if ( $from_name ) {
+            add_filter( 'wp_mail_from_name', function() use ( $from_name ) {
+                return $from_name;
+            }, 999 );
+        }
+        if ( $from_email && is_email( $from_email ) ) {
+            add_filter( 'wp_mail_from', function() use ( $from_email ) {
+                return $from_email;
+            }, 999 );
+        }
     }
 
     public static function enqueue_media( $hook ) {
@@ -24,7 +40,9 @@ class CE_Settings {
     }
 
     public static function render() {
-        $logo_url = get_option( self::OPT_LOGO, '' );
+        $logo_url   = get_option( self::OPT_LOGO, '' );
+        $from_name  = get_option( self::OPT_FROM_NAME, '' );
+        $from_email = get_option( self::OPT_FROM_EMAIL, '' );
         ?>
         <div class="wrap"><h1>Custom Emails – Settings</h1>
         <?php if ( isset( $_GET['updated'] ) ) echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>'; ?>
@@ -32,6 +50,19 @@ class CE_Settings {
             <?php wp_nonce_field( 'ce_settings' ); ?>
             <input type="hidden" name="action" value="ce_save_settings">
             <table class="form-table">
+                <tr><th>From name</th>
+                    <td>
+                        <input type="text" name="from_name" value="<?php echo esc_attr( $from_name ); ?>" class="regular-text">
+                        <p class="description">Sender name shown in recipients' inbox. Leave blank to use WordPress default.</p>
+                    </td></tr>
+                <tr><th>From email</th>
+                    <td>
+                        <input type="email" name="from_email" value="<?php echo esc_attr( $from_email ); ?>" class="regular-text">
+                        <p class="description">
+                            Sender email address. Must be verified in your email service (Elastic Email).<br>
+                            Leave blank to use WordPress default (<code>wordpress@<?php echo esc_html( wp_parse_url( home_url(), PHP_URL_HOST ) ); ?></code>).
+                        </p>
+                    </td></tr>
                 <tr><th>Enable discovery logger</th>
                     <td><label><input type="checkbox" name="logger" value="1" <?php checked( get_option( CE_Logger::OPTION_ON ) ); ?>> Capture all outgoing mail for 7 days</label></td></tr>
                 <tr><th>Wrap emails in HTML</th>
@@ -109,6 +140,8 @@ class CE_Settings {
     public static function save() {
         if ( ! current_user_can( 'manage_options' ) ) wp_die();
         check_admin_referer( 'ce_settings' );
+        update_option( self::OPT_FROM_NAME, sanitize_text_field( wp_unslash( $_POST['from_name'] ?? '' ) ) );
+        update_option( self::OPT_FROM_EMAIL, sanitize_email( wp_unslash( $_POST['from_email'] ?? '' ) ) );
         update_option( CE_Logger::OPTION_ON, ! empty( $_POST['logger'] ) );
         update_option( CE_Wrapper::OPT_HTML, ! empty( $_POST['html'] ) );
         update_option( self::OPT_LOGO, esc_url_raw( wp_unslash( $_POST['logo_url'] ?? '' ) ) );
