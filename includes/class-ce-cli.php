@@ -60,6 +60,11 @@ class CE_CLI {
                 'header' => get_option( CE_Wrapper::OPT_HEADER, '' ),
                 'footer' => get_option( CE_Wrapper::OPT_FOOTER, '' ),
             ],
+                        'sender'    => [
+                'from_name'  => get_option( CE_Settings::OPT_FROM_NAME, '' ),
+                'from_email' => get_option( CE_Settings::OPT_FROM_EMAIL, '' ),
+            ],
+            'logo_url'  => get_option( CE_Settings::OPT_LOGO ),
         ];
         WP_CLI::log( wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
     }
@@ -75,6 +80,13 @@ class CE_CLI {
             update_option( CE_Wrapper::OPT_HTML, ! empty( $data['wrapper']['html'] ) );
             update_option( CE_Wrapper::OPT_HEADER, (string) ( $data['wrapper']['header'] ?? '' ) );
             update_option( CE_Wrapper::OPT_FOOTER, (string) ( $data['wrapper']['footer'] ?? '' ) );
+        }
+                if ( isset( $data['sender'] ) ) {
+            update_option( CE_Settings::OPT_FROM_NAME, sanitize_text_field( $data['sender']['from_name'] ?? '' ) );
+            update_option( CE_Settings::OPT_FROM_EMAIL, sanitize_email( $data['sender']['from_email'] ?? '' ) );
+        }
+        if ( isset( $data['logo_url'] ) ) {
+            update_option( CE_Settings::OPT_LOGO, esc_url_raw( $data['logo_url'] ) );
         }
         WP_CLI::success( 'Imported ' . count( $data['overrides'] ) . ' overrides.' );
     }
