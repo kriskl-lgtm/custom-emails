@@ -26,6 +26,7 @@ foreach ( [
     'includes/interceptors/core-profile.php',
     'includes/interceptors/core-comments.php',
     'includes/interceptors/bbp-subscriptions.php',
+             'includes/interceptors/bp-activation-welcome.php',
     'includes/interceptors/bp-bridge.php',
          'includes/interceptors/bp-emails.php',
     'includes/interceptors/promoted-catchall.php',
