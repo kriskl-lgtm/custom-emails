@@ -52,6 +52,9 @@ add_action( 'plugins_loaded', function () {
 } );
 
 register_activation_hook( __FILE__, function () {
-    CE_Store::install();
-    CE_Logger::install();
+    // Swallow any stray output from include files so WP activation doesn't warn.
+    if ( ! headers_sent() ) { ob_start(); }
+    if ( class_exists( 'CE_Store' ) )  { CE_Store::install(); }
+    if ( class_exists( 'CE_Logger' ) ) { CE_Logger::install(); }
+    if ( ob_get_level() > 0 ) { ob_end_clean(); }
 } );
