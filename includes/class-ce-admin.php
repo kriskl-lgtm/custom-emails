@@ -165,15 +165,10 @@ class CE_Admin {
   public static function handle_save() {
     $id = sanitize_key( $_POST['email_id'] ?? '' );
     check_admin_referer( 'ce_save_' . $id );
-    CE_Store::put( $id, [
-      'subject'  => sanitize_text_field( $_POST['subject'] ?? '' ),
-      'body'     => wp_kses_post( $_POST['body'] ?? '' ),
-      'modified' => current_time( 'Y-m-d H:i' ),
-    ] );
-    wp_safe_redirect( add_query_arg( [ 'page' => self::SLUG, 'email' => $id, 'updated' => 1 ], admin_url( 'admin.php' ) ) );
-    exit;
-  }
-
+            CE_Store::save( $id, sanitize_text_field( $_POST['subject'] ?? '' ), wp_kses_post( $_POST['body'] ?? '' ) );
+        wp_safe_redirect( add_query_arg( [ 'page' => self::SLUG, 'email' => $id, 'updated' => 1 ], admin_url( 'admin.php' ) ) );
+        exit;
+      }
   public static function handle_reset() {
     $id = sanitize_key( $_POST['email_id'] ?? '' );
     check_admin_referer( 'ce_reset_' . $id );
