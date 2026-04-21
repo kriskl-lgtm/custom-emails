@@ -14,7 +14,7 @@ class CE_Exporter {
         <?php if ( isset( $_GET['imported'] ) ) echo '<div class="notice notice-success"><p>Import complete.</p></div>'; ?>
 
         <h2>Export</h2>
-        <p>Download a JSON file of all overrides (for staging -> production migration).</p>
+        <p>Download a JSON file of all overrides (for staging &rarr; production migration).</p>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
             <?php wp_nonce_field( 'ce_export' ); ?>
             <input type="hidden" name="action" value="ce_export">
@@ -45,6 +45,11 @@ class CE_Exporter {
                 'header' => get_option( CE_Wrapper::OPT_HEADER, '' ),
                 'footer' => get_option( CE_Wrapper::OPT_FOOTER, '' ),
             ],
+            'sender'    => [
+                'from_name'  => get_option( CE_Settings::OPT_FROM_NAME, '' ),
+                'from_email' => get_option( CE_Settings::OPT_FROM_EMAIL, '' ),
+            ],
+            'logo_url'  => get_option( CE_Settings::OPT_LOGO, '' ),
         ];
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
@@ -66,6 +71,13 @@ class CE_Exporter {
             update_option( CE_Wrapper::OPT_HTML, ! empty( $data['wrapper']['html'] ) );
             update_option( CE_Wrapper::OPT_HEADER, (string) ( $data['wrapper']['header'] ?? '' ) );
             update_option( CE_Wrapper::OPT_FOOTER, (string) ( $data['wrapper']['footer'] ?? '' ) );
+        }
+        if ( isset( $data['sender'] ) ) {
+            update_option( CE_Settings::OPT_FROM_NAME, sanitize_text_field( $data['sender']['from_name'] ?? '' ) );
+            update_option( CE_Settings::OPT_FROM_EMAIL, sanitize_email( $data['sender']['from_email'] ?? '' ) );
+        }
+        if ( isset( $data['logo_url'] ) ) {
+            update_option( CE_Settings::OPT_LOGO, esc_url_raw( $data['logo_url'] ) );
         }
 
         wp_safe_redirect( add_query_arg( [ 'page' => 'ce-export', 'imported' => 1 ], admin_url( 'admin.php' ) ) );
