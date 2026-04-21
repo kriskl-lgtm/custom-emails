@@ -27,6 +27,7 @@ foreach ( [
     'includes/interceptors/core-comments.php',
     'includes/interceptors/bbp-subscriptions.php',
     'includes/interceptors/bp-bridge.php',
+         'includes/interceptors/bp-emails.php',
     'includes/interceptors/promoted-catchall.php',
 ] as $f ) {
     $p = CE_PATH . $f;
