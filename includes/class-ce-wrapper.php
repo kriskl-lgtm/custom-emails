@@ -2,7 +2,6 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 class CE_Wrapper {
-
     const OPT_HEADER = 'ce_wrapper_header';
     const OPT_FOOTER = 'ce_wrapper_footer';
     const OPT_HTML   = 'ce_wrapper_html';
@@ -34,6 +33,15 @@ class CE_Wrapper {
         return get_option( self::OPT_HTML ) ? 'html' : 'text';
     }
 
+    /**
+     * Build the logo HTML block if a logo URL is configured.
+     */
+    public static function get_logo_html() {
+        $logo_url = get_option( CE_Settings::OPT_LOGO, '' );
+        if ( ! $logo_url ) return '';
+        return '<div style="text-align:center;padding:20px 0 10px;"><img src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( get_bloginfo( 'name' ) ) . '" style="max-width:300px;max-height:100px;height:auto;"></div>';
+    }
+
     public static function wrap( $atts ) {
         $email_id = self::$current_email_id;
         self::$current_email_id = null; // Reset for next call.
@@ -50,19 +58,18 @@ class CE_Wrapper {
         }
 
         $format = self::get_effective_format( $email_id );
-
         if ( $format === 'text' ) {
             // Ensure plain text - strip any HTML tags.
             $atts['message'] = wp_strip_all_tags( $atts['message'] );
             return $atts;
         }
 
-        // HTML mode: apply header/footer wrapper and set Content-Type.
+        // HTML mode: apply logo + header/footer wrapper and set Content-Type.
+        $logo   = self::get_logo_html();
         $header = get_option( self::OPT_HEADER, '' );
         $footer = get_option( self::OPT_FOOTER, '' );
-
-        if ( $header || $footer ) {
-            $atts['message'] = $header . wpautop( $atts['message'] ) . $footer;
+        if ( $logo || $header || $footer ) {
+            $atts['message'] = $logo . $header . wpautop( $atts['message'] ) . $footer;
         } else {
             // No wrapper defined but format is HTML - just wpautop.
             $atts['message'] = wpautop( $atts['message'] );
@@ -71,8 +78,11 @@ class CE_Wrapper {
         // Add Content-Type: text/html header if not already present.
         $headers = (array) ( $atts['headers'] ?? [] );
         $has_ct = false;
-        foreach ( $headers as $h ) if ( stripos( $h, 'content-type:' ) === 0 ) $has_ct = true;
-        if ( ! $has_ct ) $headers[] = 'Content-Type: text/html; charset=UTF-8';
+        foreach ( $headers as $h )
+            if ( stripos( $h, 'content-type:' ) === 0 )
+                $has_ct = true;
+        if ( ! $has_ct )
+            $headers[] = 'Content-Type: text/html; charset=UTF-8';
         $atts['headers'] = $headers;
 
         return $atts;
