@@ -6,8 +6,7 @@
  * hook so they appear in the admin list. At runtime, filters bp_email_set_*
  * to inject overrides stored in CE_Store.
  *
- * No calls to bp_get_email_post_type() or bp_get_email_type_tax_name() at
- * registration time - those are only needed at send time when BP is loaded.
+ * IDs use bp_ prefix (not bp:) because sanitize_key() strips colons.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -16,7 +15,6 @@ class CE_BP_Emails {
 
   const SOURCE = 'bp';
 
-  /** Known BP email types with friendly labels. */
   private static $types = [
     'core-user-registration' => [
       'label'   => 'BP - Activate account (signup)',
@@ -53,7 +51,7 @@ class CE_BP_Emails {
       'label'   => 'BP - @mention in activity',
       'desc'    => 'Sent when a user is mentioned in an activity update.',
       'subject' => '{poster.name} mentioned you in an update',
-      'body'    => '{poster.name} mentioned you in an update:\n\n\"{usermessage}\"\n\nView: {mentioned.url}',
+      'body'    => "{poster.name} mentioned you in an update.\n\nView: {mentioned.url}",
       'tokens'  => [
         '{poster.name}'   => 'Who mentioned',
         '{usermessage}'   => 'Message excerpt',
@@ -64,7 +62,7 @@ class CE_BP_Emails {
       'label'   => 'BP - Group invitation',
       'desc'    => 'Sent when a user is invited to a group.',
       'subject' => 'You have an invitation to the group: {group.name}',
-      'body'    => '{inviter.name} invited you to {group.name}.\n\n{invite.message}\n\nAccept: {group.url}',
+      'body'    => "{inviter.name} invited you to {group.name}.\n\n{invite.message}\n\nAccept: {group.url}",
       'tokens'  => [
         '{inviter.name}'   => 'Inviter',
         '{group.name}'     => 'Group',
@@ -76,7 +74,7 @@ class CE_BP_Emails {
       'label'   => 'BP - New private message',
       'desc'    => 'Notification of an unread private message.',
       'subject' => 'New message from {sender.name}',
-      'body'    => '{sender.name} sent you a new message:\n\n\"{usermessage}\"\n\nView: {message.url}',
+      'body'    => "{sender.name} sent you a new message.\n\nView: {message.url}",
       'tokens'  => [
         '{sender.name}'  => 'Sender',
         '{usermessage}'  => 'Message text',
@@ -87,7 +85,7 @@ class CE_BP_Emails {
       'label'   => 'BP - Friendship request',
       'desc'    => 'Sent when someone requests to be friends.',
       'subject' => 'New friendship request from {initiator.name}',
-      'body'    => '{initiator.name} wants to be friends.\n\nView: {friendship.url}',
+      'body'    => "{initiator.name} wants to be friends.\n\nView: {friendship.url}",
       'tokens'  => [
         '{initiator.name}' => 'Requester',
         '{friendship.url}' => 'Respond URL',
@@ -120,7 +118,6 @@ class CE_BP_Emails {
     add_filter( 'bp_email_set_content_plaintext', [ __CLASS__, 'filter_plain' ],   20, 2 );
   }
 
-  /** Register all known BP types in the Custom Emails admin list. */
   public static function register() {
     if ( ! class_exists( 'CE_Registry' ) ) { return; }
     $common_tokens = [
@@ -130,7 +127,7 @@ class CE_BP_Emails {
       '{recipient.email}'  => 'Recipient email',
     ];
     foreach ( self::$types as $slug => $t ) {
-      CE_Registry::register( 'bp:' . $slug, [
+      CE_Registry::register( 'bp_' . $slug, [
         'source'           => self::SOURCE,
         'label'            => $t['label'],
         'description'      => $t['desc'],
@@ -168,7 +165,7 @@ class CE_BP_Emails {
     if ( ! class_exists( 'CE_Store' ) ) { return null; }
     $type = $email->get_type();
     if ( ! $type ) { return null; }
-    $data = CE_Store::get( 'bp:' . $type );
+    $data = CE_Store::get( 'bp_' . $type );
     if ( empty( $data ) || empty( $data['subject'] ) ) { return null; }
     return isset( $data[ $field ] ) && $data[ $field ] !== '' ? $data[ $field ] : null;
   }
