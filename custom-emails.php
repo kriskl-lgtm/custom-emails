@@ -3,7 +3,7 @@
  * Plugin Name: Custom Emails
  * Description: Capture and edit system emails from WP core, BuddyPress, and bbPress.
  * Version: 0.3.0
- * Author: kriskl-lgtm
+  * Author: OpenTuition
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 
